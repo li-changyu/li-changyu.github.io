@@ -79,16 +79,17 @@
 
 
 
-<meta name="description" content="世事变幻,但时间从不作答。">
-<meta property="og:type" content="website">
-<meta property="og:title" content="李章鱼的blog">
-<meta property="og:url" content="http://lizhangyu.com/index.html">
+<meta name="description" content="Promise是什么？当我们谈论Promise的时候，往往又要碰出异步啦，回调啦这些让人头大的话题。以前接触Nodejs的时候，Nodejs有个十分让人诟病的问题，就是回调地狱。这个名字让人不寒而栗，你可能写出来的代码是这样的：   1234567891011getData(a =&amp;gt; &amp;#123;    getMoreData(a, b =&amp;gt; &amp;#123;        getMore">
+<meta property="og:type" content="article">
+<meta property="og:title" content="动手实现Promise">
+<meta property="og:url" content="http://lizhangyu.com/2018/04/19/动手实现Promise/index.html">
 <meta property="og:site_name" content="李章鱼的blog">
-<meta property="og:description" content="世事变幻,但时间从不作答。">
+<meta property="og:description" content="Promise是什么？当我们谈论Promise的时候，往往又要碰出异步啦，回调啦这些让人头大的话题。以前接触Nodejs的时候，Nodejs有个十分让人诟病的问题，就是回调地狱。这个名字让人不寒而栗，你可能写出来的代码是这样的：   1234567891011getData(a =&amp;gt; &amp;#123;    getMoreData(a, b =&amp;gt; &amp;#123;        getMore">
 <meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-04-19T12:27:00.555Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="李章鱼的blog">
-<meta name="twitter:description" content="世事变幻,但时间从不作答。">
+<meta name="twitter:title" content="动手实现Promise">
+<meta name="twitter:description" content="Promise是什么？当我们谈论Promise的时候，往往又要碰出异步啦，回调啦这些让人头大的话题。以前接触Nodejs的时候，Nodejs有个十分让人诟病的问题，就是回调地狱。这个名字让人不寒而栗，你可能写出来的代码是这样的：   1234567891011getData(a =&amp;gt; &amp;#123;    getMoreData(a, b =&amp;gt; &amp;#123;        getMore">
 
 
 
@@ -118,13 +119,13 @@
 
 
 
-  <link rel="canonical" href="http://lizhangyu.com/"/>
+  <link rel="canonical" href="http://lizhangyu.com/2018/04/19/动手实现Promise/"/>
 
 
 
 
 
-  <title>李章鱼的blog</title>
+  <title>动手实现Promise | 李章鱼的blog</title>
   
 
 
@@ -143,8 +144,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -217,9 +217,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -249,9 +249,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/19/动手实现Promise/" itemprop="url">动手实现Promise</a></h1>
+          <h1 class="post-title" itemprop="name headline">动手实现Promise</h1>
         
 
         <div class="post-meta">
@@ -301,9 +299,7 @@
       
 
       
-        
-          
-            <p><strong>Promise是什么？</strong><br>当我们谈论Promise的时候，往往又要碰出异步啦，回调啦这些让人头大的话题。以前接触Nodejs的时候，Nodejs有个十分让人诟病的问题，就是<strong>回调地狱</strong>。<br>这个名字让人不寒而栗，你可能写出来的代码是这样的：  </p>
+        <p><strong>Promise是什么？</strong><br>当我们谈论Promise的时候，往往又要碰出异步啦，回调啦这些让人头大的话题。以前接触Nodejs的时候，Nodejs有个十分让人诟病的问题，就是<strong>回调地狱</strong>。<br>这个名字让人不寒而栗，你可能写出来的代码是这样的：  </p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">getData(a =&gt; &#123;</span><br><span class="line">    getMoreData(a, b =&gt; &#123;</span><br><span class="line">        getMoreData(b, c =&gt; &#123;</span><br><span class="line">            getMoreData(c, d =&gt; &#123;</span><br><span class="line">                getMoreData(d, e =&gt; &#123;</span><br><span class="line">                    console.log(e);</span><br><span class="line">                &#125;)</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
 <p>这种代码维护起来简直是煎熬，赶紧拥抱ES6吧，有个Promise以后，我们写出来的代码可能是这样的：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">getData()</span><br><span class="line">    .then(a =&gt; getMoreData(a))</span><br><span class="line">    .then(b =&gt; getMoreData(b))</span><br><span class="line">    .then(c =&gt; getMoreData(c))</span><br><span class="line">    .then(d =&gt; getMoreData(d))</span><br><span class="line">    .then(e =&gt; getMoreData(e))</span><br></pre></td></tr></table></figure>
@@ -330,8 +326,6 @@
 <p><strong>加入reject</strong><br>在异步操作失败时，标记其状态为 rejected，并执行注册的失败回调，和之前的resolve实现差不多，看代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">function Promise(executor) &#123;</span><br><span class="line">    this.state = &apos;pending&apos;;</span><br><span class="line">    this.value = null;</span><br><span class="line">    this.deferreds = [];</span><br><span class="line">    this.failList = [];</span><br><span class="line">    this.then = (onFulfilled, onRejected) =&gt; &#123;</span><br><span class="line">        if (state = &apos;pending&apos;) &#123;</span><br><span class="line">            deferreds.push(onFulfilled);</span><br><span class="line">            failList.push(onRejected || null);</span><br><span class="line">            return this;</span><br><span class="line">        &#125; else if (state = &apos;fulfilled&apos;) &#123;</span><br><span class="line">            onFulfilled(value);</span><br><span class="line">            return this;</span><br><span class="line">        &#125; else if (state = &apos;rejected&apos;) &#123;</span><br><span class="line">            onRejected(value);</span><br><span class="line">            return this;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    function resolve(newValue) &#123;</span><br><span class="line">        setTimeout(() =&gt; &#123;</span><br><span class="line">            value = newValue;</span><br><span class="line">            state = &apos;fulfilled&apos;;</span><br><span class="line">            for (let i = 0; i &lt; deferreds.length; i++) &#123;</span><br><span class="line">                var temp = deferreds[i](value);</span><br><span class="line">                if (temp instanceof Promise) &#123;</span><br><span class="line">                    var newPromise = temp;</span><br><span class="line">                    for (i++; i &lt; deferreds.length; i++) &#123;</span><br><span class="line">                        newPromise.then(deferreds[i]);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    value = temp;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, 0);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function reject(newValue) &#123;</span><br><span class="line">        setTimeout(() =&gt; &#123;</span><br><span class="line">            value = newValue;</span><br><span class="line">            state = &apos;rejected&apos;;</span><br><span class="line">            for (let i = 0; i &lt; failList.length; i++) &#123;</span><br><span class="line">                var temp = failList[i](value);</span><br><span class="line">                if (temp instanceof Promise) &#123;</span><br><span class="line">                    var newPromise = temp;</span><br><span class="line">                    for (i++; i &lt; failList.length; i++) &#123;</span><br><span class="line">                        newPromise.then(failList[i]);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    value = temp;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, 0);</span><br><span class="line">    &#125;</span><br><span class="line">    executor(resolve, reject);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <p>到这里，一个Promise构造函数就被实现出来了，麻雀虽小，五脏俱全。<br>参考资料：<br><a href="https://tech.meituan.com/promise-insight.html" target="_blank" rel="noopener">剖析 Promise 之基础篇</a><br><a href="https://www.jianshu.com/p/473cd754311f" target="_blank" rel="noopener">Promise简单实现（正常思路版）</a></p>
 
-          
-        
       
     </div>
     
@@ -348,179 +342,28 @@
       
 
       
-
-      
-
       
       
-        <div class="post-eof"></div>
+
       
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/04/15/Hexo-Github-Pages建站指北/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="李章鱼">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/uploads/avatar.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="李章鱼的blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/15/Hexo-Github-Pages建站指北/" itemprop="url">Hexo+Github Pages建站指北</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
             
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-15T22:37:12+08:00">
-                2018-04-15
-              </time>
+              <a href="/2018/04/15/Hexo-Github-Pages建站指北/" rel="next" title="Hexo+Github Pages建站指北">
+                <i class="fa fa-chevron-left"></i> Hexo+Github Pages建站指北
+              </a>
             
+          </div>
 
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
             
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
+          </div>
         </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
       
 
       
-        
-          
-            <p>之前一直在OneNote上面写笔记。结果每次笔记同步的时候，我的Microsoft账号老是连不上。想着去年买的个人域名一直没有用，干脆就搭一个博客吧。</p>
-<p>搭建博客的教程网上一抓一大把，这里选用比较常见的方案：Hexo+GitHub Pages.</p>
-<hr>
-<ul>
-<li><p><strong>Hexo是什么</strong>？<br><a href="https://hexo.io/zh-cn/" target="_blank" rel="noopener">Hexo中文网站</a><br>拿官网的说法，hexo是一个快速、简洁且高效的博客框架。（嗯，使用过后确实相当便捷~ o(<em>￣▽￣</em>)o）</p>
-</li>
-<li><p><strong>Github Pages是什么？</strong><br><a href="https://pages.github.com/" target="_blank" rel="noopener">Github Pages官方网站</a><br>简单来说，Github Pages提github供给用户用来展示个人或者项目主页的静态网页系统。非常棒的服务，为我们穷学生省下了租服务器的钱。</p>
-</li>
-</ul>
-<p>有了Hexo和Github Pages，搭建博客相当的便捷。具体方法前面的网站写的很详细，这里简单说一下吧~  </p>
-<hr>
-<p>首先，在本地通过Hexo搭建博客<br>确保自己电脑上安装有：</p>
-<ul>
-<li><a href="http://nodejs.cn/" target="_blank" rel="noopener">Node.js</a></li>
-<li><a href="https://git-scm.com/downloads" target="_blank" rel="noopener">Git</a><br>之后通过npm安装Hexo：  </li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ npm install -g hexo-cli</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注：我用的是windows 10，安装hexo有个warning：<br><code>npm WARN optional SKIPPING OPTIONAL DEPENDENCY: fsevents@^1.0.0 (node_modules\chokidar\node_modules\fsevents):</code><br>原因是是因为 fsevents是mac osx系统的，在win或者Linux下使用了 所以会有警告，忽略即可。  </p>
-</blockquote>
-<p>这样，Hexo就安装好啦~<br>接下来：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ hexo init blog  //创建名为blog的hexo项目</span><br><span class="line">$ cd blog  //进入blog文件夹内</span><br><span class="line">$ npm install  //安装相关依赖</span><br><span class="line">$ hexo generator //生成静态文件。</span><br><span class="line">$ hexo server //启动服务器。默认情况下，访问网址为： http://localhost:4000/</span><br></pre></td></tr></table></figure>
-<p>好咧，这个时候就能在<code>http://localhost:4000/</code>访问到自己的博客了，在<code>_config.yml</code>文件中可以修改博客配置。具体内容可以在官网上找到，这里按下不表。你也可以选择不同的主题来定制你的博客，比如<a href="http://theme-next.iissnan.com/" target="_blank" rel="noopener">NexT</a>。  </p>
-<hr>
-<p>接下来我们得把博客放到Github Pages上，这样其他人就能通过互联网访问到我们的博客了。<br>首先在你的GitHub上创建一个repo，名称为<code>yourname.github.io</code>。之后修改<code>_config.yml</code>文件，配置如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">  type: git</span><br><span class="line">  repo: https://github.com/YourgithubName/YourgithubName.github.io.git</span><br><span class="line">  branch: master</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注：“：”后面有一个空格，不要忘了哦~     </p>
-</blockquote>
-<p>接下来，安装<code>hexo-deployer-git</code>：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install hexo-deployer-git --save //这样才能将你写好的文章部署到github服务器上并让别人浏览到</span><br></pre></td></tr></table></figure>
-<p>执行指令：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ hexo clean //清除缓存文件 (db.json) 和已生成的静态文件 (public)。</span><br><span class="line">$ hexo generate</span><br><span class="line">$ hexo deploy //部署网站</span><br></pre></td></tr></table></figure>
-<p>到这里我们就完成了，浏览器中输入<code>http://yourgithubname.github.io</code>就可以看到你的个人博客啦。分享给朋友看看吧~</p>
-<hr>
-<p><strong>发布文章</strong></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new &quot;文章标题&quot; //新建一篇文章</span><br></pre></td></tr></table></figure>
-<p>在路径<code>\source\_posts</code>中可以找到新建的markdown文件，用markdown语法来完成你的博客吧。保存后发布到本地：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>如果按照之前的步骤走下来，上传到Github Pages页面只需要：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<hr>
-<p><strong>后记：浅析Hexo原理</strong><br>Hexo这么好用，那么它的实现原理是怎么样的呢？<br>首先我们知道Github Pages支持静态页面的解析，也就是说我们可以直接把html页面push到Github Pages上。Hexo所做的就是把你写的markdown文件和主题模板结合，生成html静态文件，最终由Github Pages展现出来。<br>这里我们来分析一下 Hexo 每次部署的流程：<br><code>hexo generator</code>：生成静态文件。遍历主题文件中的 source 文件夹（js、css、img 等静态资源），然后建立索引，然后根据索引生成 pubilc文件夹中，此时的 publid 文件是由 html、 js、css、img 建立的纯静态文件可以通过index.html作为入口访问你的博客。<br><code>hexo deploy</code>：部署文件。部署主要是根据在 <code>_config.yml</code> 中配置的 git 仓库，将 public 文件上传至 github 中。然后再根据上面的 github 提供的 pages 服务呈现出页面。当然你也可以直接将你生成的 public 文件上传至你自己的服务器上。<br>可以看到，从markdown到html的过程由generator指令完成，这个过程进行了两次模板渲染：<br>第一次渲染：将sourse目录下的文件渲染为一个article对象。       </p>
-<blockquote>
-<p>其中模块hexo-renderer-marked 用于解析md文件，js-yaml 是解析yml文件。</p>
-</blockquote>
-<p>第二次渲染：将article对象和themes文件通过模板引擎（Hexo默认为ejs）渲染为静态页面资源，保存在public文件夹中。     </p>
-<p>好咧，收工。</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -530,138 +373,11 @@
   </article>
 
 
-    
-      
 
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/04/14/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="李章鱼">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/uploads/avatar.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="李章鱼的blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/04/14/hello-world/" itemprop="url">Hello World</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-14T12:50:17+08:00">
-                2018-04-14
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-
-          
-        
+    <div class="post-spread">
       
     </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
   </div>
-  
-  
-  
-  </article>
-
-
-    
-  </section>
-
-  
 
 
           </div>
@@ -669,6 +385,10 @@
 
 
           
+
+  
+
+
 
         </div>
         
@@ -869,6 +589,10 @@
   
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
