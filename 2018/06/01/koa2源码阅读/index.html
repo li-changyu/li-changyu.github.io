@@ -79,17 +79,17 @@
 
 
 
-<meta name="description" content="koa2源码阅读express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架sprin">
+<meta name="description" content="express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架spring的作者Rod">
 <meta property="og:type" content="article">
-<meta property="og:title" content="test">
+<meta property="og:title" content="koa2源码阅读">
 <meta property="og:url" content="http://lizhangyu.com/2018/06/01/koa2源码阅读/index.html">
 <meta property="og:site_name" content="李章鱼的blog">
-<meta property="og:description" content="koa2源码阅读express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架sprin">
+<meta property="og:description" content="express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架spring的作者Rod">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-09-02T07:09:45.667Z">
+<meta property="og:updated_time" content="2018-09-02T07:12:17.250Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="test">
-<meta name="twitter:description" content="koa2源码阅读express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架sprin">
+<meta name="twitter:title" content="koa2源码阅读">
+<meta name="twitter:description" content="express和koa提到node，我们绕不开一位开发者——TJ。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架spring的作者Rod">
 
 
 
@@ -125,7 +125,7 @@
 
 
 
-  <title>test | 李章鱼的blog</title>
+  <title>koa2源码阅读 | 李章鱼的blog</title>
   
 
 
@@ -249,7 +249,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">test</h1>
+          <h1 class="post-title" itemprop="name headline">koa2源码阅读</h1>
         
 
         <div class="post-meta">
@@ -299,7 +299,7 @@
       
 
       
-        <h1 id="koa2源码阅读"><a href="#koa2源码阅读" class="headerlink" title="koa2源码阅读"></a>koa2源码阅读</h1><h2 id="express和koa"><a href="#express和koa" class="headerlink" title="express和koa"></a>express和koa</h2><p>提到node，我们绕不开一位开发者——<a href="https://github.com/tj?tab=activity" target="_blank" rel="noopener">TJ</a>。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。<br><em>提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架spring的作者Rod Johnson是音乐学博士。</em> </p>
+        <h2 id="express和koa"><a href="#express和koa" class="headerlink" title="express和koa"></a>express和koa</h2><p>提到node，我们绕不开一位开发者——<a href="https://github.com/tj?tab=activity" target="_blank" rel="noopener">TJ</a>。TJ本身是做设计的（现在似乎还能找到一个他的摄影网站），半路出家一头扎进node的大坑，我们熟悉的express，koa都出自他之手，如此高产的程序员甚至让很多人怀疑TJ是不是一个团队。<br><em>提个题外话，程序员这一行还真是个包容的行业，离我们近一点的vue.js的开发者尤雨溪是艺术研究生出身，远一点的java框架spring的作者Rod Johnson是音乐学博士。</em> </p>
 <p>书归正传。这里谈谈我对exress和koa的理解。两大框架主要不同来自于对异步回调的处理，express基于es5语法，采用回调嵌套的方式。而koa支持es5中的generator/yield + co函数处理异步任务，koa2则进一步支持es7语法，使用async/await使得异步任务被处理的更加优雅。<br>koa包含了四个主要模块：application，request，response，context。相比express删去了router模块，更加精简。<br><em>关于异步实现方案上，express也可以借助babel实现async/await</em></p>
 <h2 id="koa2源码简析"><a href="#koa2源码简析" class="headerlink" title="koa2源码简析"></a>koa2源码简析</h2><p>入口文件application.js写的非常精简，加上注释只有两百来行：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">module.exports = class Application extends Emitter &#123;</span><br><span class="line"></span><br><span class="line">  constructor() &#123;</span><br><span class="line">    super();</span><br><span class="line"></span><br><span class="line">    this.middleware = [];</span><br><span class="line">    this.context = Object.create(context);</span><br><span class="line">    this.request = Object.create(request);</span><br><span class="line">    this.response = Object.create(response);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  listen(...args) &#123;</span><br><span class="line">    debug(&apos;listen&apos;);</span><br><span class="line">    const server = http.createServer(this.callback());</span><br><span class="line">    return server.listen(...args);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  use(fn) &#123;</span><br><span class="line">    this.middleware.push(fn);</span><br><span class="line">    return this;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  callback() &#123;</span><br><span class="line">    const fn = compose(this.middleware);</span><br><span class="line"></span><br><span class="line">    const handleRequest = (req, res) =&gt; &#123;</span><br><span class="line">      const ctx = this.createContext(req, res);</span><br><span class="line">      return this.handleRequest(ctx, fn);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    return handleRequest;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  handleRequest(ctx, fnMiddleware) &#123;</span><br><span class="line">    const res = ctx.res;</span><br><span class="line">    res.statusCode = 404;</span><br><span class="line">    const onerror = err =&gt; ctx.onerror(err);</span><br><span class="line">    const handleResponse = () =&gt; respond(ctx);</span><br><span class="line">    onFinished(res, onerror);</span><br><span class="line">    return fnMiddleware(ctx).then(handleResponse).catch(onerror);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  /**</span><br><span class="line">   * Initialize a new context.</span><br><span class="line">   *</span><br><span class="line">   * @api private</span><br><span class="line">   */</span><br><span class="line"></span><br><span class="line">  createContext(req, res) &#123;</span><br><span class="line">    const context = Object.create(this.context);</span><br><span class="line">    const request = context.request = Object.create(this.request);</span><br><span class="line">    const response = context.response = Object.create(this.response);</span><br><span class="line">    context.app = request.app = response.app = this;</span><br><span class="line">    context.req = request.req = response.req = req;</span><br><span class="line">    context.res = request.res = response.res = res;</span><br><span class="line">    request.ctx = response.ctx = context;</span><br><span class="line">    request.response = response;</span><br><span class="line">    response.request = request;</span><br><span class="line">    context.originalUrl = request.originalUrl = req.url;</span><br><span class="line">    context.state = &#123;&#125;;</span><br><span class="line">    return context;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
 <p>删掉了一些无关紧要的代码，以koa2官网上的hello world程序来看一看koa2是如何运行的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">const Koa = require(&apos;koa&apos;);</span><br><span class="line">const app = new Koa();</span><br><span class="line"></span><br><span class="line">app.use(async ctx =&gt; &#123;</span><br><span class="line">  ctx.body = &apos;Hello World&apos;;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">app.listen(3000);</span><br></pre></td></tr></table></figure></p>
@@ -340,8 +340,8 @@
 
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2018/06/15/vue源码阅读/" rel="prev" title="test">
-                test <i class="fa fa-chevron-right"></i>
+              <a href="/2018/06/15/vue源码阅读/" rel="prev" title="vue源码阅读">
+                vue源码阅读 <i class="fa fa-chevron-right"></i>
               </a>
             
           </div>
@@ -460,7 +460,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#koa2源码阅读"><span class="nav-number">1.</span> <span class="nav-text">koa2源码阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#express和koa"><span class="nav-number">1.1.</span> <span class="nav-text">express和koa</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#koa2源码简析"><span class="nav-number">1.2.</span> <span class="nav-text">koa2源码简析</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#express和koa"><span class="nav-number">1.</span> <span class="nav-text">express和koa</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#koa2源码简析"><span class="nav-number">2.</span> <span class="nav-text">koa2源码简析</span></a></li></ol></div>
             
 
           </div>
