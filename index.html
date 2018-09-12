@@ -232,6 +232,280 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/09/01/以koa为例，讲讲各种网络安全问题/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="李章鱼">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="李章鱼的blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/09/01/以koa为例，讲讲各种网络安全问题/" itemprop="url">以koa为例，讲讲各种网络安全问题</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-01T20:26:35+08:00">
+                2018-09-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>网络安全问题的文章到处都是，不过对于前端来说，很多东西都停留在理论。毕竟很多内容的涉及到和后端交互。这篇博客假想有一个 Koa 后台，来结合实际梳理一下网络安全的各种东西。</p>
+<h2 id="XSS-跨站脚本攻击"><a href="#XSS-跨站脚本攻击" class="headerlink" title="XSS-跨站脚本攻击"></a>XSS-跨站脚本攻击</h2><p>XSS, 即为（Cross Site Scripting）, 中文名为跨站脚本, 是发生在<strong>目标用户的浏览器</strong>层面上的，当渲染DOM树的过程成发生了不在预期内执行的JS代码时，就发生了XSS攻击。<br>跨站脚本的重点不在‘跨站’上，而在于‘脚本’上。大多数XSS攻击的主要方式是嵌入一段远程或者第三方域上的JS代码。实际上是在目标网站的作用域下执行了这段js代码。<br>获取页面数据，获取Cookie（站酷），劫持前端逻辑（跳转页面）， 发送请求。甚至可以提交表单时注入到后台管理系统。<br>XSS分为<strong>反射型</strong>和<strong>存储型</strong>。  </p>
+<h3 id="反射型"><a href="#反射型" class="headerlink" title="反射型"></a>反射型</h3><p>url参数直接注入的攻击方式。发出请求时，XSS代码出现在URL中，作为输入提交到服务器端，服务器端解析后响应，XSS随响应内容一起返回给浏览器，最后浏览器解析执行XSS代码。<br>举个例子：某网站登录时url是这样的：<code>http://lizhangyu.com/id=李章鱼</code>，网站后台（在koa中，获取参数非常简单:<code>context.query.id</code>，其中 context 为一个包含了请求对象和响应对象的对象，我们后面也会经常用到它）接收到参数<code>id: 李章鱼</code>后在浏览器渲染出<code>你好，李章鱼</code>。如果有人给我发一个url地址<code>http://lizhangyu.com/id=&lt;script&gt;alert(1)&lt;/script&gt;</code>,这个时候我点击进去浏览器会将<code>id</code>参数渲染进页面，识别为一个脚本，实现XSS攻击。</p>
+<h3 id="存储型"><a href="#存储型" class="headerlink" title="存储型"></a>存储型</h3><p>存储到DB后读取时注入的攻击方式。看了上边的例子，你会发现反射型XSS攻击力并不强，毕竟如果有人诱使我点击一个奇怪网站很容易让人起疑心。而存储型XSS就厉害的多了。同样举个例子：某黑客在某网站发表评论<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>，这个评论存在服务器数据库里所有用户都能看到，如果网站没有任何处理措施，所有访问该网站的用户都会渲染出该脚本。可见，存储型XSS攻击危险性比反射型大很多。  </p>
+<p>有人会想，在页面中插入<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>能有多大危害？实际上，如果页面能够插入<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>,那就说明我们能在用户浏览器插入任何脚本，诸如获取用户 Cookie ，获取页面信息， 劫持页面跳转等，这些都能轻易办到。</p>
+<h2 id="如何防御XSS攻击"><a href="#如何防御XSS攻击" class="headerlink" title="如何防御XSS攻击"></a>如何防御XSS攻击</h2><h3 id="转义"><a href="#转义" class="headerlink" title="转义"></a>转义</h3><p>之所以浏览器在渲染时会识别脚本，是因为在编译时浏览器检测到了诸如<code>&lt;script&gt;</code>之类的标签，那我们直接把标签过滤掉呗，这样编译时就会把脚本当场普通字符串了，直接上代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">//后台接收到字符串时对特殊符号进行一次转义</span><br><span class="line">var escapeHtml = function (str) &#123;</span><br><span class="line">  str = str.replace(/&lt;/g, &apos;&amp;lt;&apos;)</span><br><span class="line">  str = str.replace(/&gt;/g, &apos;&amp;gt;&apos;)</span><br><span class="line">  str = str.replace(/&quot;/g, &apos;&amp;quto;&apos;)</span><br><span class="line">  str = str.replace(/&apos;/g, &apos;&amp;apos;&apos;)</span><br><span class="line">  str = str.replace(/&amp;/g, &apos;&amp;amp;&apos;)</span><br><span class="line">  return str</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="浏览器的保护"><a href="#浏览器的保护" class="headerlink" title="浏览器的保护"></a>浏览器的保护</h3><p>浏览器当然是不会放任你的网站在 Internet 上裸奔的。我们可以在服务端设置响应头来让浏览器帮我们搞定XSS：    </p>
+<ul>
+<li><code>ctx.set(&#39;X-XSS-Protection&#39;, 0)</code><br>这个响应头兼容性很不错。是Internet Explorer，Chrome和Safari的一个功能，当检测到跨站脚本攻击 (XSS)时，浏览器将停止加载页面。比如当我访问<code>http://lizhangyu.com/id=&lt;script&gt;alert(1)&lt;/script&gt;</code>时，浏览器会禁止访问该网站，不过这么看起来，似乎<code>X-XSS-Protection</code>只能防御反射型XSS攻击，效果十分有限。 </li>
+<li><code>ctx.set(&#39;Content-Security-Policy&#39;, &#39;default-src \&#39;self\&#39;&#39;)</code><br>这个响应头类似于跨域请求中的同源策略，只允许我们页面向我们允许的域名发起跨域请求,而不符合我们策略的恶意攻击则被挡在门外。更加深入了解请查阅<strong>内容安全策略（CSP）</strong> 。  </li>
+</ul>
+<h4 id="白名单和黑名单"><a href="#白名单和黑名单" class="headerlink" title="白名单和黑名单"></a>白名单和黑名单</h4><p>顾名思义，黑名单就是后台建立一个名单，所有在名单内的标签或是属性统统被拦截；白名单恰好相反，所有不在名单内的标签或是属性统统被拦截。这里举个白名单的例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">//cheerio是一个node模块，可以使用类似 jQuery 语法解析html字符串</span><br><span class="line">const cheerio = require(&apos;cheerio&apos;) //引入cheerio</span><br><span class="line">let $ = cheerio.load(html)</span><br><span class="line">$(&apos;*&apos;).foreach((index, ele) =&gt; &#123;</span><br><span class="line">  if ( !whiteList[elem.name] ) $(ele).remove //如果该DOM对象不在白名单中，则删除该DOM节点</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>有兴趣的可以研究一下啊一个白名单模块： <code>js-xss</code>。  </p>
+<h2 id="CSRF-跨站请求伪造"><a href="#CSRF-跨站请求伪造" class="headerlink" title="CSRF-跨站请求伪造"></a>CSRF-跨站请求伪造</h2><p>CSRF（Cross-site request forgery）跨站请求伪造，也被称为“One Click Attack”（一点就爆炸？听起来有点吓人）或者Session Riding，通常缩写为CSRF或者XSRF，是一种对网站的恶意利用。尽管听起来像跨站脚本（XSS），但它与XSS非常不同，XSS利用站点内的信任用户，而CSRF则通过伪装来自受信任用户的请求来利用受信任的网站。与XSS攻击相比，CSRF攻击往往不大流行（因此对其进行防范的资源也相当稀少）和难以防范，所以被认为比XSS更具危险性。<br>上面那一段有点抽象，我还是来举个例子：<br>依然是这个倒霉网站：<code>http://lizhangyu.com/</code>,假如你是这个网站的会员，偶尔发发评论啥的。当你发评论时，会请求这个api：<code>http://licahngyu.com/addComment</code>进行表单提交。有一天，某黑客给你发来一个网址，<code>http://csrf.com</code>。你想起上此被XSS攻击过，有点警惕性，但是看这个网址好像挺正常的嘛，所以你放心的点了进去。这个网站啥也没有，就一行字：猜猜我要干嘛~<br>你觉得是某人的恶作剧罢了，没有管他，继续浏览你的<code>http://lizhangyu.com/</code>，这个时候你突然发现评论区多了一条你的评论：<br><strong>我是猪</strong><br>好气哦！同学，你又被攻击咯。  </p>
+<p>我们来看看<code>http://csrf.com</code>这个网站的代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">//页面</span><br><span class="line">&lt;form name=&quot;comment&quot; method=&quot;post&quot; action=&quot;http://licahngyu.com/addComment&quot; target=&quot;csrf&quot;&gt;</span><br><span class="line">  &lt;!-- input内容被隐藏了 --&gt;</span><br><span class="line">  &lt;input name=&quot;comment&quot; type=&quot;hidden&quot; value=&quot;我是猪&quot;&gt;</span><br><span class="line">  &lt;textarea&gt;</span><br><span class="line">    猜猜我要干嘛~</span><br><span class="line">  &lt;/textarea&gt;</span><br><span class="line">&lt;/form&gt;</span><br><span class="line"></span><br><span class="line">//js</span><br><span class="line">var iframe = document.createElement(&apos;iframe&apos;)</span><br><span class="line">iframe.name = &apos;target&apos;</span><br><span class="line">//iframe被隐藏了，同时在打开页面时执行了提交表单事件</span><br><span class="line">iframe.style.display = &apos;none&apos;</span><br><span class="line">document.body.appendChild(iframe)</span><br><span class="line">documnet.querySelector(&apos;[name=comment]&apos;).submit()</span><br></pre></td></tr></table></figure></p>
+<p>不难发现，当我们打开这个网站时，网站自动帮我们提交了表单，而提交的地址正是<code>http://licahngyu.com/addComment</code>这个api，而你提交的时候，浏览器会带着你在<code>http://lizhangyu.com/</code>的Cookie发送到服务器里，服务器验证通过你的身份就把消息发出来咯。  </p>
+<h2 id="如何防御CSRF攻击"><a href="#如何防御CSRF攻击" class="headerlink" title="如何防御CSRF攻击"></a>如何防御CSRF攻击</h2><h3 id="禁止第三方网站带cookie"><a href="#禁止第三方网站带cookie" class="headerlink" title="禁止第三方网站带cookie"></a>禁止第三方网站带cookie</h3><p>为什么我在<code>http://csrf.com</code>发送的请求能带上<code>http://lizhangyu.com/</code>的Cookie？这显然是不合理的。于是浏览器厂商想了个办法————添加 sameSite 响应头。来看代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ctx.cookies.set(&apos;username&apos;,user.id, &#123;</span><br><span class="line">  httpOnly: false,</span><br><span class="line">  sameSite: &apos;strict&apos;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>服务器在设置 Cookie 时同时设置了 sameSite ，这样，只有<code>http://lizhangyu.com/</code>里的请求能带上这个Cookie。<br>这个解决方案太棒了，可惜的是，这个特性几乎只被chrome支持。所以针对其他浏览器，我们得想想别的办法。</p>
+<h3 id="验证码"><a href="#验证码" class="headerlink" title="验证码"></a>验证码</h3><p>我们再来捋一捋，<code>http://csrf.com</code>发送的攻击绕过了<code>http://lizhangyu.com/</code>的前端。那我们可以想办法让服务端发送请求时，必须经过<code>http://lizhangyu.com/</code>的前端才行。最典型的解决方法就是在提交表单时添加验证码。这个时候<code>http://csrf.com</code>拿不到验证码，提交被拒绝，搞定。</p>
+<blockquote>
+<p>node模块ccap可以实现生成验证码，有兴趣的可以试一下。</p>
+</blockquote>
+<h3 id="token"><a href="#token" class="headerlink" title="token"></a>token</h3><p>验证码的用户体验非常差，我们来试试token。<br>token的原理是服务器随机生成一个token，隐藏放在页面的meta中，同时也在服务端存储该token，用户提交表单时token一并被上传到服务器进行身份验证。显然<code>http://csrf.com</code>拿不到token，提交被拒绝，搞定。</p>
+<h3 id="referer"><a href="#referer" class="headerlink" title="referer"></a>referer</h3><p>顺着之前讲得sameSite的思路，其实我们的服务器是可以得到请求来源的url地址的，那么我们可以在服务器端添加如下代码来模拟sameSite：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">var referer = cyx.request.headers.referer</span><br><span class="line">if (referer.indexOf(&apos;licahngyu.com&apos;)==-1) &#123; </span><br><span class="line">  //处理非法请求</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>未完待续…</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/08/15/UTF-8和讨厌的乱码/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="李章鱼">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="李章鱼的blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/08/15/UTF-8和讨厌的乱码/" itemprop="url">UTF-8和讨厌的乱码</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-08-15T20:26:35+08:00">
+                2018-08-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>想起小时候外盗版游戏的日子里，总会在打汉化补丁时出现一些不可名状的奇怪汉字构成的乱码，那时候只能靠连蒙带猜玩下去。想不到时过境迁，现在天天写代码的时候也是会经常遇到乱码。今天就来总结一下这讨厌的乱码究竟是什么在作怪吧！  </p>
+<h2 id="汉字编码的痛楚"><a href="#汉字编码的痛楚" class="headerlink" title="汉字编码的痛楚"></a>汉字编码的痛楚</h2><p>世界上存在着多种编码方式，当我们翻开大一C语言教材，里写的ASCII码就是最原始的编码了。ASCII 码一共规定了128个字符的编码，比如空格SPACE是32（二进制00100000），大写的字母A是65（二进制01000001）。这128个符号（包括32个不能打印出来的控制符号），只占用了一个字节的后面7位，最前面的一位统一规定为0。可是因为不同语言的问题，仅仅采用ASCII码显然行不通，于是便有了不同的编码规范，随之而来的，也就产生了乱码问题。<br>可以想象，如果有一种编码，将世界上所有的符号都纳入其中。每一个符号都给予一个独一无二的编码，那么乱码问题就会消失。这就是 Unicode，但是Unicode 只是一个符号集，<strong>它只规定了符号的二进制代码，却没有规定这个二进制代码应该如何存储。</strong>  而且，每一个unicode码都占用4个字节，按照二八法则，出现频率最高的数字和字母都采用4个字节的话将会极大的浪费空间。<br>随着互联网的发展，我们有了解决方法：UTF-8。<br>UTF-8 最大的一个特点，就是它是一种<strong>变长的编码方式</strong>。它可以使用1~4个字节表示一个符号，根据不同的符号而变化字节长度。<br>UTF-8 的编码规则很简单，只有二条：<br>1）对于单字节的符号，字节的第一位设为0，后面7位为这个符号的 Unicode 码。因此对于英语字母，UTF-8 编码和 ASCII 码是相同的。</p>
+<p>2）对于n字节的符号（n &gt; 1），第一个字节的前n位都设为1，第n + 1位设为0，后面字节的前两位一律设为10。剩下的没有提及的二进制位，全部为这个符号的 Unicode 码。<br>好了，了解到了UTF-8，我们再来看看中文编码。中国大陆最常用的就是GBK18030编码，除此之外还有GBK，GB2312，这几个编码的关系是这样的。 最早制定的汉字编码是GB2312，包括6763个汉字和682个其它符号 95年重新修订了编码，命名GBK1.0，共收录了21886个符号。 之后又推出了GBK18030编码，共收录了27484个汉字，同时还收录了藏文、蒙文、维吾尔文等主要的少数民族文字。而这些编码的特点是，<strong>他们是定长编码</strong>。这就是我们出现中文乱码的原因，本质就是：<strong>读取二进制的时候采用的编码和最初将字符转换成二进制时的编码不一致。</strong> 乱码的原因一般是编码和解码的方式不是用的同一套格式所致，要想恢复乱码，必须对症下药，找到当初的编码格式，这样一般都能解决乱码问题。</p>
+<h2 id="MySQL-中使用「utf8」"><a href="#MySQL-中使用「utf8」" class="headerlink" title="MySQL 中使用「utf8」"></a>MySQL 中使用「utf8」</h2><p>好吧，既然编码规范这么烦杂，我们干脆都用UTF-8吧。理论上来讲这当然是个好办法，但是因为历史遗留问题，我们的数据库可就没那么听话。<br>事实上，MySQL使用的「utf8」只支持每个字符最多三个字节，而真正的 UTF-8 是每个字符最多四个字节。MySQL 一直没有修复这个 bug，他们在 2010 年发布了一个叫作「utf8mb4」的字符集，绕过了这个问题。当然，他们并没有对新的字符集广而告之（可能是因为这个 bug 让他们觉得很尴尬），以致于现在网络上仍然在建议开发者使用「utf8」，但这些建议都是错误的。为什么会造成这种局面呢，可能的原因是MySQL诞生的时候UTF-8标准还没有得到广泛推广。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">一种说法是：2002 年，MySQL 做出了一个决定，如果用户可以保证数据表的每一行都使用相同的字节数，那么 MySQL 就可以在性能方面来一个大提升。为此，用户需要将文本列定义为「CHAR」，每个「CHAR」列总是拥有相同数量的字符。如果插入的字符少于定义的数量，MySQL 就会在后面填充空格，如果插入的字符超过了定义的数量，后面超出部分会被截断。</span><br></pre></td></tr></table></figure></p>
+<p>所以，当你使用数据库时，请使用<code>utf8mb4</code>。</p>
+<h2 id="node里的乱码"><a href="#node里的乱码" class="headerlink" title="node里的乱码"></a>node里的乱码</h2><p>在朴灵的《深入浅出node》里Buffer一章提到了一种产生乱码的情景。下面是一段从输入流中读取内容的示例代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">var fs = require(&apos;fs&apos;)</span><br><span class="line"></span><br><span class="line">var rs = fs.createReadStream(&apos;UTF-8和讨厌的乱码.md&apos;)</span><br><span class="line">var data = &apos;&apos;</span><br><span class="line">rs.on(&apos;data&apos;, (thunk) =&gt; data += thunk)</span><br><span class="line">rs.on(&apos;end&apos;, () =&gt; console.log(data))</span><br></pre></td></tr></table></figure></p>
+<p>这里面的chunk对象就是Buffer对象。在代码<code>data += thunk</code>中隐藏了toString()操作。它等价于：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">data = data.toString() + data.toString()</span><br></pre></td></tr></table></figure></p>
+<p>对于英文字符来说，一个字符只占一个字节，读出来的thunk是这样的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;Buffer 74 65 73 74 74 65 73 74 74 65 73 74&gt;</span><br><span class="line">testtesttest</span><br></pre></td></tr></table></figure></p>
+<p>然而对于中文字符，一个字符占三个字节，每次读取的Buffer长度是有限的，如果不是三的倍数，则会出现乱码问题。例如（这里人为限制Buffer长度为11）：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;Buffer e5 ba 8a e5 89 8d e6 98 8e e6 9c&gt;</span><br><span class="line">&lt;Buffer 88 e5 85 89&gt;</span><br><span class="line">床前明��光</span><br></pre></td></tr></table></figure></p>
+<p>解决办法：添加<code>rs.setEncoding()</code><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">var fs = require(&apos;fs&apos;)</span><br><span class="line"></span><br><span class="line">var rs = fs.createReadStream(&apos;test.md&apos;, &#123; highWaterMark: 11 &#125;)</span><br><span class="line">rs.setEncoding(&apos;utf8&apos;)</span><br><span class="line">var data = &apos;&apos;</span><br><span class="line">rs.on(&apos;data&apos;, (thunk) =&gt; &#123;</span><br><span class="line">  console.log(thunk)</span><br><span class="line">  data += thunk</span><br><span class="line">&#125;)</span><br><span class="line">rs.on(&apos;end&apos;, () =&gt; console.log(data))</span><br><span class="line">//床前明</span><br><span class="line">//月光</span><br><span class="line">//床前明月光</span><br></pre></td></tr></table></figure></p>
+<p><code>setEncoding()</code>的原理是在thunk拼接前，提前进行转码，如果Buffer结束时不够三个字节，则将多出来的字节缓存在内部的StringDecoder实例内，以供下一个thunk使用。<br>还有一种解决方式是将多个小Buffer拼接为一个对象，在利用<code>iconv-lite</code>一类的模块来转码。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">var thunks = []</span><br><span class="line">var size = 0</span><br><span class="line">var rs = fs.createReadStream(&apos;test.md&apos;, &#123; highWaterMark: 11 &#125;)</span><br><span class="line">rs.on(&apos;data&apos;, (thunk) =&gt; &#123;</span><br><span class="line">  thunks.push(thunk)</span><br><span class="line">  size += thunk.length</span><br><span class="line">&#125;)</span><br><span class="line">rs.on(&apos;end&apos;, () =&gt; &#123;</span><br><span class="line">  var buf = Buffer.concat(chunks, size)</span><br><span class="line">  var str = iconv.decode(buf, &apos;utf8&apos;)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/06/15/vue源码阅读/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -579,9 +853,12 @@
       
         
           
-            <p>google有一个有意思的XSS游戏，今天花时间做了一下。也算是对XSS相关知识的一个复习。<br><a href="https://xss-game.appspot.com/" target="_blank" rel="noopener">地址戳这里</a></p>
-<h3 id="什么是xss"><a href="#什么是xss" class="headerlink" title="什么是xss"></a>什么是xss</h3><p>跨站脚本攻击(Cross Site Scripting)，为不和层叠样式表(Cascading Style Sheets, CSS)的缩写混淆，故将跨站脚本攻击缩写为XSS。恶意攻击者往Web页面里插入恶意Script代码，当用户浏览该页之时，嵌入其中Web里面的Script代码会被执行，从而达到恶意攻击用户的目的。（摘自百度百科）<br>最近看的《白帽子讲web安全》一书中写道：<br><strong>web安全的核心是信任问题。</strong>  </p>
-<h2 id="永远不要信任用户输入的任何东西。网站管理员想方设法的对用户输入进行层层拦截，而黑客，则千方百计的绕开这些封锁。"><a href="#永远不要信任用户输入的任何东西。网站管理员想方设法的对用户输入进行层层拦截，而黑客，则千方百计的绕开这些封锁。" class="headerlink" title="永远不要信任用户输入的任何东西。网站管理员想方设法的对用户输入进行层层拦截，而黑客，则千方百计的绕开这些封锁。"></a>永远不要信任用户输入的任何东西。网站管理员想方设法的对用户输入进行层层拦截，而黑客，则千方百计的绕开这些封锁。</h2><h3 id="level1"><a href="#level1" class="headerlink" title="level1"></a>level1</h3><p>第一关用户的输入没有经过任何过滤。也就是说，输入就是输出。在黑客眼中，这就是一个完全裸奔的网站，轻松拿下。</p>
+            <p>google有一个有意思的XSS游戏，今天花时间做了一下。也算是对XSS相关知识的一个复习。<br><a href="https://xss-game.appspot.com/" target="_blank" rel="noopener">地址戳这里</a>  </p>
+<h3 id="什么是xss"><a href="#什么是xss" class="headerlink" title="什么是xss"></a>什么是xss</h3><p>跨站脚本攻击(Cross Site Scripting)，为不和层叠样式表(Cascading Style Sheets, CSS)的缩写混淆，故将跨站脚本攻击缩写为XSS。恶意攻击者往Web页面里插入恶意Script代码，当用户浏览该页之时，嵌入其中Web里面的Script代码会被执行，从而达到恶意攻击用户的目的。（摘自百度百科）<br>最近看的《白帽子讲web安全》一书中写道：  </p>
+<p><strong>web安全的核心是信任问题。</strong>  </p>
+<p>永远不要信任用户输入的任何东西。网站管理员想方设法的对用户输入进行层层拦截，而黑客，则千方百计的绕开这些封锁。  </p>
+<hr>
+<h3 id="level1"><a href="#level1" class="headerlink" title="level1"></a>level1</h3><p>第一关用户的输入没有经过任何过滤。也就是说，输入就是输出。在黑客眼中，这就是一个完全裸奔的网站，轻松拿下。</p>
 <p>查看源码可以看到输入的内容直接放在message变量中被渲染出来：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># Our search engine broke, we found no results :-(</span><br><span class="line">message = &quot;Sorry, no results were found for &lt;b&gt;&quot; + query + &quot;&lt;/b&gt;.&quot;</span><br><span class="line">message += &quot; &lt;a href=&apos;?&apos;&gt;Try again&lt;/a&gt;.&quot;</span><br><span class="line"></span><br><span class="line"># Display the results page</span><br><span class="line">self.render_string(page_header + message + page_footer)</span><br></pre></td></tr></table></figure></p>
 <p>参考答案如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;alert(1)&lt;/script&gt;</span><br></pre></td></tr></table></figure></p>
 <h3 id="level2"><a href="#level2" class="headerlink" title="level2"></a>level2</h3><p>第二关也没有对用户输入进行过滤，不过第二关插入脚本后不会像第一关一样重新渲染整个页面。我们可以使用img标签的onerror属性来执行脚本：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;img src=&quot;#&quot; onerror=&quot;alert(1)&quot; /&gt;</span><br></pre></td></tr></table></figure></p>
@@ -594,7 +871,7 @@
 <h3 id="level6"><a href="#level6" class="headerlink" title="level6"></a>level6</h3><p>第六关的网页可以通过window.location.hash值加载js资源，可以通过搭建服务器，通过服务器ip访问脚本实现脚本注入。具体方法参考这里：<br><a href="https://paulsec.github.io/blog/2014/06/02/diving-into-xss-googles-game/" target="_blank" rel="noopener">戳这里</a></p>
 <hr>
 <p>全部通关后获得蛋糕一只，congratulations~</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">                                       -oooo:-                                                        </span><br><span class="line">                                      omhsoosho`                                                      </span><br><span class="line">                                      Ndo:``:oh-                                                      </span><br><span class="line">                                      dms+--+ym:                                                      </span><br><span class="line">                                      -ymhohdh+`                                                      </span><br><span class="line">                                       `N/`.s.                                                        </span><br><span class="line">                                        +:  +                                                         </span><br><span class="line">                                        --  :                                                         </span><br><span class="line">                                        --  o                                                         </span><br><span class="line">                                        ..  +                                                         </span><br><span class="line">                                        ::  s        ..`                                              </span><br><span class="line">                              .:sssso.  --  +     :syhhyo`                                            </span><br><span class="line">              ..::::.       `odhhyyhdd. ::  s    .mhhyhhdh.       -:...`                              </span><br><span class="line">             /dhhhhhhs     .odddhyhdddh+y:  my-syhdhhyhhddy/`   .odhyyhh:                             </span><br><span class="line">            yNdhyyoyhmo+::+ms/+++//++/odm:  NNmNd+///+++/+ody::omhyssyhdm-                            </span><br><span class="line">          -sddyyyyyyyoommmmmmdhyyyyyyhddd: `ddmdmdhyssyyhhmmNNNNdhyyyyyhmo-`                          </span><br><span class="line">      ``-omdyyyssys///shdddddddddmmdddhyy-``yhddddhhhhhdmmmmmmdd/oyssyyyyhmhss-`                      </span><br><span class="line">   `:ohhdmddhhyyyyyshddddhhyyyyyhddhhyo:-...--shhyysssyyhhdhhhddyyysyyyhdddmNNmyo.                    </span><br><span class="line">  /hNNmmd/:o+/////:`/osyhhyyys+syyhhyysysooossyyyyyooyyyyyyysyy+./oooooos/:ydNNmNmo.                  </span><br><span class="line"> +dNmmmmmhoo+///////oossshhyyyyyyyyssoossoosoosssyyyyyyyhsoyyyys/:-..--:/+sdddmmmNMy                  </span><br><span class="line">`hNmmdmmdmddddhhhyhysso+.oyssssso-./o:-/+oo++oo--osoooooo..oyyhyyyyyyhhhyhdddmmdmNNN                  </span><br><span class="line">`yNmNNhhdmdddhhhyyyyyyys:-......`./+++/:o++oo++/-````..::/+sysysyyyhsshhhydddmmmNNNN                  </span><br><span class="line"> sMNNNNNNmmdmdhhhhyyyyyyhhssssoo+oo/+//:/+//+:++++ooosyooyssosyyhhyhsshdhdmmNmNmmMMN                  </span><br><span class="line"> -NNNNNNhmNmdmmmdddddmhhhyyyyssys///+/:://////o+osoo+osoossosyhhdddh+omddmNNmmNmNMMN                  </span><br><span class="line"> oMNNNNNNNNdydNmmmmmdhydhhsoooodhydhsshys+soyooooosssyhyhymdhdhyddmmmdmNNNNNNmNNNMMM                  </span><br><span class="line"> yMMNNNMmmNdmmNNNNNNmh/sysyysyhyddmhhyhyhhddyyyhmddhhdmdddmmmdmmmmNNmmmNmNNNNmMNMMMM                  </span><br><span class="line">.dMMNNMMNNNmNNNNNNmmNNhsddddNNdmhdmddyyhdhdhdddhdmhhdddhmddmmmNNNNNNNNNNNNNNNNMNMMMM                  </span><br><span class="line">:NMMMNMMNMNhhmNNNNmdmNNmhddmdNmmmmmmddddNmdhdhddddmddmmmmmmNdNmdmmNNNmNNNNNdmMMMMMMM                  </span><br><span class="line">-mMMMMMNNmNNmNNNNNNNNNNNdmmNmNmNmNmmNNmmNNdhddmmmmNmhhhyohNMNMNmmmmNdmNNMMMNNMMMMMMM                  </span><br><span class="line">.dMMMMMMNNNMMMMMNNNNNMNmmmNNNmmmmNNdddmmNNNmmdNNmNNNmmNNNNNNNNNNNNNNNmNNNNNmNMMMMMMM                  </span><br><span class="line">:NMMMMMMMMMMMMMMMNmmNMNNNNNNNmmNmNNNNmdmNNNNNNNmNNdmNNMMNMmNNNNNNMMNdmNNNMNmmMMMMMMM                  </span><br><span class="line">:NNMMMMMMMMMMMMMMMMNNMNNMNNNMMMNNNNNNmNmdmmmNNNNNNmmNNNNNNNNNNMNNMMMNNNNMMNmMMMMNNMN                  </span><br><span class="line">:NMMMNNMMMMMMMMMMMMMNNMMMMNMMMNmNNMNNNNNmhNMNNMNNNMMNMMMMMNNMMNNNMNMMMMNMMNNMMNMNMMM                  </span><br><span class="line">`hMMMNdMNNMNNNNNMMNNNNMMMMMMMMNmNMMMMNNNNNNNdmmmMNMMMMMMNNMMNmdNMMNMNNNNMNmmNMNMMMMN                  </span><br><span class="line"> yMMMMNMMNMNmmNNNMNmddmMMNNNMNNNNNMMNNNNMNNNNNNNmNNNNNNNNNNNNNddNdmdmmNNMNNdMMMMMMMN                  </span><br><span class="line"> yMMMMNMNMMNNMMNNNNmdmmNMNNdhmMNNNNNNmNMMddddmNNNmNNMMNmNmmmmmNNmmmmNMMMMMMNNNMMMMMN                  </span><br><span class="line"> yNNNMMNNMMMMMMNNNNNMmmdNNNNNNNNNNNNmNNNNNmNmmNNNNNNNNNNNmNmNNNNNNNNNNNNNMMMNNMMMMMy                  </span><br><span class="line"> +MMMMMMMMMMMNNNNMMMNNNNmNNNMNMNNMNNmhdNNNNNmNNNmmNNNNNNNNNNNMMNNmNNNNNMNMNMMMMMMMN:                  </span><br><span class="line">  NMMMMNMMMMMMMNNNNNNdNMNNNNNNmNNNNNNNNNmmhNNNNmdNNNNNNNNNMMNNMNNNNNNNNNMMMMNNMMMNs`                  </span><br><span class="line">  -sdmNMNNMMMMMNNNNmmmmNNNMNmNMNNNNNNNMNmNNNNNNmmmdmNNNMNmmmmNMNNMNMmmNNMMMNMNmd+-`                   </span><br><span class="line">    `.ohNNMMNMMNMNNmdmNNNNNNmNMNNMNNNNmNNNmmmNmNMMNNMNNMMNNNNNNNNNNMMMMMMMNNho.`                      </span><br><span class="line">        :+hdNNNNNNNNNNNNNNmNNNNNNNMNNNmNNNNmMmmmNNNMNNNNNNNNMNNMMMMMNNmdds/-                          </span><br><span class="line">           `--:+shddmmNmmmmNNNNMNNNMNNNNNNNNNNMMNMMMNNNmNNNMNNNNdh++/-.`                              </span><br><span class="line">                   `--++osdddddddysNmmhshmmmmmNmddddddho/:++/---                                      </span><br><span class="line">                                  `-.-. .------.</span><br></pre></td></tr></table></figure>
+
           
         
       
@@ -1069,125 +1346,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2017/08/21/test/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="李章鱼">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/uploads/avatar.png">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="李章鱼的blog">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2017/08/21/test/" itemprop="url">test</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-21T18:38:47+08:00">
-                2017-08-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-
-          
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1238,7 +1396,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-count">8</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="网络安全问题的文章到处都是，不过对于前端来说，很多东西都停留在理论。毕竟很多内容的涉及到和后端交互。这篇博客假想有一个 Koa 后台，来结合实际梳理一下网络安全的各种东西。 XSS-跨站脚本攻击XSS, 即为（Cross Site Scripting）, 中文名为跨站脚本, 是发生在目标用户的浏览器层面上的，当渲染DOM树的过程成发生了不在预期内执行的JS代码时，就发生了XSS攻击。跨站脚本的重点">
+<meta property="og:type" content="article">
+<meta property="og:title" content="以koa为例，讲讲各种网络安全问题">
+<meta property="og:url" content="http://lizhangyu.com/2018/09/01/以koa为例，讲讲各种网络安全问题/index.html">
+<meta property="og:site_name" content="李章鱼的blog">
+<meta property="og:description" content="网络安全问题的文章到处都是，不过对于前端来说，很多东西都停留在理论。毕竟很多内容的涉及到和后端交互。这篇博客假想有一个 Koa 后台，来结合实际梳理一下网络安全的各种东西。 XSS-跨站脚本攻击XSS, 即为（Cross Site Scripting）, 中文名为跨站脚本, 是发生在目标用户的浏览器层面上的，当渲染DOM树的过程成发生了不在预期内执行的JS代码时，就发生了XSS攻击。跨站脚本的重点">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2018-09-12T15:59:06.980Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="以koa为例，讲讲各种网络安全问题">
+<meta name="twitter:description" content="网络安全问题的文章到处都是，不过对于前端来说，很多东西都停留在理论。毕竟很多内容的涉及到和后端交互。这篇博客假想有一个 Koa 后台，来结合实际梳理一下网络安全的各种东西。 XSS-跨站脚本攻击XSS, 即为（Cross Site Scripting）, 中文名为跨站脚本, 是发生在目标用户的浏览器层面上的，当渲染DOM树的过程成发生了不在预期内执行的JS代码时，就发生了XSS攻击。跨站脚本的重点">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lizhangyu.com/2018/09/01/以koa为例，讲讲各种网络安全问题/"/>
+
+
+
+
+
+  <title>以koa为例，讲讲各种网络安全问题 | 李章鱼的blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">李章鱼的blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lizhangyu.com/2018/09/01/以koa为例，讲讲各种网络安全问题/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="李章鱼">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="李章鱼的blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">以koa为例，讲讲各种网络安全问题</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-01T20:26:35+08:00">
+                2018-09-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>网络安全问题的文章到处都是，不过对于前端来说，很多东西都停留在理论。毕竟很多内容的涉及到和后端交互。这篇博客假想有一个 Koa 后台，来结合实际梳理一下网络安全的各种东西。</p>
+<h2 id="XSS-跨站脚本攻击"><a href="#XSS-跨站脚本攻击" class="headerlink" title="XSS-跨站脚本攻击"></a>XSS-跨站脚本攻击</h2><p>XSS, 即为（Cross Site Scripting）, 中文名为跨站脚本, 是发生在<strong>目标用户的浏览器</strong>层面上的，当渲染DOM树的过程成发生了不在预期内执行的JS代码时，就发生了XSS攻击。<br>跨站脚本的重点不在‘跨站’上，而在于‘脚本’上。大多数XSS攻击的主要方式是嵌入一段远程或者第三方域上的JS代码。实际上是在目标网站的作用域下执行了这段js代码。<br>获取页面数据，获取Cookie（站酷），劫持前端逻辑（跳转页面）， 发送请求。甚至可以提交表单时注入到后台管理系统。<br>XSS分为<strong>反射型</strong>和<strong>存储型</strong>。  </p>
+<h3 id="反射型"><a href="#反射型" class="headerlink" title="反射型"></a>反射型</h3><p>url参数直接注入的攻击方式。发出请求时，XSS代码出现在URL中，作为输入提交到服务器端，服务器端解析后响应，XSS随响应内容一起返回给浏览器，最后浏览器解析执行XSS代码。<br>举个例子：某网站登录时url是这样的：<code>http://lizhangyu.com/id=李章鱼</code>，网站后台（在koa中，获取参数非常简单:<code>context.query.id</code>，其中 context 为一个包含了请求对象和响应对象的对象，我们后面也会经常用到它）接收到参数<code>id: 李章鱼</code>后在浏览器渲染出<code>你好，李章鱼</code>。如果有人给我发一个url地址<code>http://lizhangyu.com/id=&lt;script&gt;alert(1)&lt;/script&gt;</code>,这个时候我点击进去浏览器会将<code>id</code>参数渲染进页面，识别为一个脚本，实现XSS攻击。</p>
+<h3 id="存储型"><a href="#存储型" class="headerlink" title="存储型"></a>存储型</h3><p>存储到DB后读取时注入的攻击方式。看了上边的例子，你会发现反射型XSS攻击力并不强，毕竟如果有人诱使我点击一个奇怪网站很容易让人起疑心。而存储型XSS就厉害的多了。同样举个例子：某黑客在某网站发表评论<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>，这个评论存在服务器数据库里所有用户都能看到，如果网站没有任何处理措施，所有访问该网站的用户都会渲染出该脚本。可见，存储型XSS攻击危险性比反射型大很多。  </p>
+<p>有人会想，在页面中插入<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>能有多大危害？实际上，如果页面能够插入<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>,那就说明我们能在用户浏览器插入任何脚本，诸如获取用户 Cookie ，获取页面信息， 劫持页面跳转等，这些都能轻易办到。</p>
+<h2 id="如何防御XSS攻击"><a href="#如何防御XSS攻击" class="headerlink" title="如何防御XSS攻击"></a>如何防御XSS攻击</h2><h3 id="转义"><a href="#转义" class="headerlink" title="转义"></a>转义</h3><p>之所以浏览器在渲染时会识别脚本，是因为在编译时浏览器检测到了诸如<code>&lt;script&gt;</code>之类的标签，那我们直接把标签过滤掉呗，这样编译时就会把脚本当场普通字符串了，直接上代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">//后台接收到字符串时对特殊符号进行一次转义</span><br><span class="line">var escapeHtml = function (str) &#123;</span><br><span class="line">  str = str.replace(/&lt;/g, &apos;&amp;lt;&apos;)</span><br><span class="line">  str = str.replace(/&gt;/g, &apos;&amp;gt;&apos;)</span><br><span class="line">  str = str.replace(/&quot;/g, &apos;&amp;quto;&apos;)</span><br><span class="line">  str = str.replace(/&apos;/g, &apos;&amp;apos;&apos;)</span><br><span class="line">  str = str.replace(/&amp;/g, &apos;&amp;amp;&apos;)</span><br><span class="line">  return str</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="浏览器的保护"><a href="#浏览器的保护" class="headerlink" title="浏览器的保护"></a>浏览器的保护</h3><p>浏览器当然是不会放任你的网站在 Internet 上裸奔的。我们可以在服务端设置响应头来让浏览器帮我们搞定XSS：    </p>
+<ul>
+<li><code>ctx.set(&#39;X-XSS-Protection&#39;, 0)</code><br>这个响应头兼容性很不错。是Internet Explorer，Chrome和Safari的一个功能，当检测到跨站脚本攻击 (XSS)时，浏览器将停止加载页面。比如当我访问<code>http://lizhangyu.com/id=&lt;script&gt;alert(1)&lt;/script&gt;</code>时，浏览器会禁止访问该网站，不过这么看起来，似乎<code>X-XSS-Protection</code>只能防御反射型XSS攻击，效果十分有限。 </li>
+<li><code>ctx.set(&#39;Content-Security-Policy&#39;, &#39;default-src \&#39;self\&#39;&#39;)</code><br>这个响应头类似于跨域请求中的同源策略，只允许我们页面向我们允许的域名发起跨域请求,而不符合我们策略的恶意攻击则被挡在门外。更加深入了解请查阅<strong>内容安全策略（CSP）</strong> 。  </li>
+</ul>
+<h4 id="白名单和黑名单"><a href="#白名单和黑名单" class="headerlink" title="白名单和黑名单"></a>白名单和黑名单</h4><p>顾名思义，黑名单就是后台建立一个名单，所有在名单内的标签或是属性统统被拦截；白名单恰好相反，所有不在名单内的标签或是属性统统被拦截。这里举个白名单的例子：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">//cheerio是一个node模块，可以使用类似 jQuery 语法解析html字符串</span><br><span class="line">const cheerio = require(&apos;cheerio&apos;) //引入cheerio</span><br><span class="line">let $ = cheerio.load(html)</span><br><span class="line">$(&apos;*&apos;).foreach((index, ele) =&gt; &#123;</span><br><span class="line">  if ( !whiteList[elem.name] ) $(ele).remove //如果该DOM对象不在白名单中，则删除该DOM节点</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>有兴趣的可以研究一下啊一个白名单模块： <code>js-xss</code>。  </p>
+<h2 id="CSRF-跨站请求伪造"><a href="#CSRF-跨站请求伪造" class="headerlink" title="CSRF-跨站请求伪造"></a>CSRF-跨站请求伪造</h2><p>CSRF（Cross-site request forgery）跨站请求伪造，也被称为“One Click Attack”（一点就爆炸？听起来有点吓人）或者Session Riding，通常缩写为CSRF或者XSRF，是一种对网站的恶意利用。尽管听起来像跨站脚本（XSS），但它与XSS非常不同，XSS利用站点内的信任用户，而CSRF则通过伪装来自受信任用户的请求来利用受信任的网站。与XSS攻击相比，CSRF攻击往往不大流行（因此对其进行防范的资源也相当稀少）和难以防范，所以被认为比XSS更具危险性。<br>上面那一段有点抽象，我还是来举个例子：<br>依然是这个倒霉网站：<code>http://lizhangyu.com/</code>,假如你是这个网站的会员，偶尔发发评论啥的。当你发评论时，会请求这个api：<code>http://licahngyu.com/addComment</code>进行表单提交。有一天，某黑客给你发来一个网址，<code>http://csrf.com</code>。你想起上此被XSS攻击过，有点警惕性，但是看这个网址好像挺正常的嘛，所以你放心的点了进去。这个网站啥也没有，就一行字：猜猜我要干嘛~<br>你觉得是某人的恶作剧罢了，没有管他，继续浏览你的<code>http://lizhangyu.com/</code>，这个时候你突然发现评论区多了一条你的评论：<br><strong>我是猪</strong><br>好气哦！同学，你又被攻击咯。  </p>
+<p>我们来看看<code>http://csrf.com</code>这个网站的代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">//页面</span><br><span class="line">&lt;form name=&quot;comment&quot; method=&quot;post&quot; action=&quot;http://licahngyu.com/addComment&quot; target=&quot;csrf&quot;&gt;</span><br><span class="line">  &lt;!-- input内容被隐藏了 --&gt;</span><br><span class="line">  &lt;input name=&quot;comment&quot; type=&quot;hidden&quot; value=&quot;我是猪&quot;&gt;</span><br><span class="line">  &lt;textarea&gt;</span><br><span class="line">    猜猜我要干嘛~</span><br><span class="line">  &lt;/textarea&gt;</span><br><span class="line">&lt;/form&gt;</span><br><span class="line"></span><br><span class="line">//js</span><br><span class="line">var iframe = document.createElement(&apos;iframe&apos;)</span><br><span class="line">iframe.name = &apos;target&apos;</span><br><span class="line">//iframe被隐藏了，同时在打开页面时执行了提交表单事件</span><br><span class="line">iframe.style.display = &apos;none&apos;</span><br><span class="line">document.body.appendChild(iframe)</span><br><span class="line">documnet.querySelector(&apos;[name=comment]&apos;).submit()</span><br></pre></td></tr></table></figure></p>
+<p>不难发现，当我们打开这个网站时，网站自动帮我们提交了表单，而提交的地址正是<code>http://licahngyu.com/addComment</code>这个api，而你提交的时候，浏览器会带着你在<code>http://lizhangyu.com/</code>的Cookie发送到服务器里，服务器验证通过你的身份就把消息发出来咯。  </p>
+<h2 id="如何防御CSRF攻击"><a href="#如何防御CSRF攻击" class="headerlink" title="如何防御CSRF攻击"></a>如何防御CSRF攻击</h2><h3 id="禁止第三方网站带cookie"><a href="#禁止第三方网站带cookie" class="headerlink" title="禁止第三方网站带cookie"></a>禁止第三方网站带cookie</h3><p>为什么我在<code>http://csrf.com</code>发送的请求能带上<code>http://lizhangyu.com/</code>的Cookie？这显然是不合理的。于是浏览器厂商想了个办法————添加 sameSite 响应头。来看代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ctx.cookies.set(&apos;username&apos;,user.id, &#123;</span><br><span class="line">  httpOnly: false,</span><br><span class="line">  sameSite: &apos;strict&apos;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>服务器在设置 Cookie 时同时设置了 sameSite ，这样，只有<code>http://lizhangyu.com/</code>里的请求能带上这个Cookie。<br>这个解决方案太棒了，可惜的是，这个特性几乎只被chrome支持。所以针对其他浏览器，我们得想想别的办法。</p>
+<h3 id="验证码"><a href="#验证码" class="headerlink" title="验证码"></a>验证码</h3><p>我们再来捋一捋，<code>http://csrf.com</code>发送的攻击绕过了<code>http://lizhangyu.com/</code>的前端。那我们可以想办法让服务端发送请求时，必须经过<code>http://lizhangyu.com/</code>的前端才行。最典型的解决方法就是在提交表单时添加验证码。这个时候<code>http://csrf.com</code>拿不到验证码，提交被拒绝，搞定。</p>
+<blockquote>
+<p>node模块ccap可以实现生成验证码，有兴趣的可以试一下。</p>
+</blockquote>
+<h3 id="token"><a href="#token" class="headerlink" title="token"></a>token</h3><p>验证码的用户体验非常差，我们来试试token。<br>token的原理是服务器随机生成一个token，隐藏放在页面的meta中，同时也在服务端存储该token，用户提交表单时token一并被上传到服务器进行身份验证。显然<code>http://csrf.com</code>拿不到token，提交被拒绝，搞定。</p>
+<h3 id="referer"><a href="#referer" class="headerlink" title="referer"></a>referer</h3><p>顺着之前讲得sameSite的思路，其实我们的服务器是可以得到请求来源的url地址的，那么我们可以在服务器端添加如下代码来模拟sameSite：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">var referer = cyx.request.headers.referer</span><br><span class="line">if (referer.indexOf(&apos;licahngyu.com&apos;)==-1) &#123; </span><br><span class="line">  //处理非法请求</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>未完待续…</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/15/UTF-8和讨厌的乱码/" rel="next" title="UTF-8和讨厌的乱码">
+                <i class="fa fa-chevron-left"></i> UTF-8和讨厌的乱码
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/avatar.png"
+                alt="李章鱼" />
+            
+              <p class="site-author-name" itemprop="name">李章鱼</p>
+              <p class="site-description motion-element" itemprop="description">世事变幻,但时间从不作答。</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#XSS-跨站脚本攻击"><span class="nav-number">1.</span> <span class="nav-text">XSS-跨站脚本攻击</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#反射型"><span class="nav-number">1.1.</span> <span class="nav-text">反射型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#存储型"><span class="nav-number">1.2.</span> <span class="nav-text">存储型</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何防御XSS攻击"><span class="nav-number">2.</span> <span class="nav-text">如何防御XSS攻击</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#转义"><span class="nav-number">2.1.</span> <span class="nav-text">转义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#浏览器的保护"><span class="nav-number">2.2.</span> <span class="nav-text">浏览器的保护</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#白名单和黑名单"><span class="nav-number">2.2.1.</span> <span class="nav-text">白名单和黑名单</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CSRF-跨站请求伪造"><span class="nav-number">3.</span> <span class="nav-text">CSRF-跨站请求伪造</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何防御CSRF攻击"><span class="nav-number">4.</span> <span class="nav-text">如何防御CSRF攻击</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#禁止第三方网站带cookie"><span class="nav-number">4.1.</span> <span class="nav-text">禁止第三方网站带cookie</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证码"><span class="nav-number">4.2.</span> <span class="nav-text">验证码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#token"><span class="nav-number">4.3.</span> <span class="nav-text">token</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#referer"><span class="nav-number">4.4.</span> <span class="nav-text">referer</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">李章鱼</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
